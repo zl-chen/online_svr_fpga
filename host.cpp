@@ -33,7 +33,6 @@ cl_mem C_buf;
 void cleanup();
 
 void load_data(double (*X)[NUM_FEATURES],double *Y){
-     cout << "Enter load func####################" << endl;
 
     // 导入
     ifstream ifs("/home/shu_students/czl/online_svr_fpga/data.csv",ifstream::in);
@@ -43,7 +42,6 @@ void load_data(double (*X)[NUM_FEATURES],double *Y){
 
 
     int idx = 0;
-    cout << "Enter load(load and mid )load func####################" << endl;
     
     while(!ifs.eof()){
 
@@ -56,7 +54,6 @@ void load_data(double (*X)[NUM_FEATURES],double *Y){
         ++idx;
     }
     ifs.close();
-    cout << "Enter load and mid  load func####################" << endl;
 
     // 数据清洗
     vector<double> means;
@@ -69,7 +66,6 @@ void load_data(double (*X)[NUM_FEATURES],double *Y){
 
         means.push_back(mean);
     }
-    cout << "Enter  mid    load func####################" << endl;
     vector<double> sd_vec;
     for(int i=0;i<NUM_FEATURES;++i){
         double sd = 0;
@@ -92,16 +88,19 @@ void load_data(double (*X)[NUM_FEATURES],double *Y){
         }
     }
 
-    
-    cout << "Enter222 load func####################" << endl;
 }
 
 
 void train(){
+    setCwdToExeDir();
     
     cl_int status;
 
-    // 
+    status = clGetPlatformIDs(1,&platform,NULL);
+    checkError(status,"Faile to find platform");
+
+    status = clGetDeviceIDs(platform,CL_DEVICE_TYPE_ALL,2,devices,NULL);
+    checkError(status,"FAILED to find devices");
 
 
 
