@@ -102,11 +102,9 @@ void train(){
     status = clGetDeviceIDs(platform,CL_DEVICE_TYPE_ALL,2,devices,NULL);
     checkError(status,"FAILED to find devices");
 
+    context = clCreateContext(NULL,1,devices,NULL,NULL,&status);
+    checkError(status,"Failed to create context");
 
-
-
-
-    cout << "Enter train func####################" << endl;
     
     double X[NUM_ROWS][NUM_FEATURES];
     double Y[NUM_ROWS];
