@@ -94,16 +94,47 @@ void load_data(double (*X)[NUM_FEATURES],double *Y){
 void train(){
     setCwdToExeDir();
     
+    cout << "test" << endl;
+
     cl_int status;
 
     status = clGetPlatformIDs(1,&platform,NULL);
     checkError(status,"Faile to find platform");
 
-    status = clGetDeviceIDs(platform,CL_DEVICE_TYPE_ALL,2,devices,NULL);
+    char line[1024];
+    clGetPlatformInfo(platform,CL_PLATFORM_NAME,1024,line,NULL);
+
+    cout << "Name: " << line << endl;
+
+
+    cl_uint num;
+    status = clGetDeviceIDs(platform,CL_DEVICE_TYPE_ALL,2,devices,&num);
+    cout << num << " devices" << endl;
     checkError(status,"FAILED to find devices");
+
+
 
     context = clCreateContext(NULL,1,devices,NULL,NULL,&status);
     checkError(status,"Failed to create context");
+
+
+
+    // 建队列
+    command_queue = clCreateCommandQueue(context,devices[0],CL_QUEUE_PROFILING_ENABLE,&status);
+    checkError(status,"Failed to create commmand queue");
+ 
+
+    // 建立program
+    program = createProgramFromBinary(context,"rbfKernel.aocx",devices,1);
+    status = clBuildProgram(program,0,NULL,NULL,NULL,NULL);
+    checkError(status,"Failed to create program");
+
+
+    // 创建kernel对象
+    kernel = clCreateKernel(program,"testKernel",&status);
+    checkError(status,"Failed to create kernel");
+    
+
 
     
     double X[NUM_ROWS][NUM_FEATURES];
