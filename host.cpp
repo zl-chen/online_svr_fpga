@@ -13,8 +13,7 @@
 #define NUM_ROWS 1222
 #define NUM_FEATURES 3
 
-int N;
-int *A,*B,*C;
+int * A,*C;
 
 using namespace aocl_utils;
 using namespace std;
@@ -34,16 +33,20 @@ cl_mem C_buf;
 void cleanup();
 
 void load_data(double (*X)[NUM_FEATURES],double *Y){
+     cout << "Enter load func####################" << endl;
 
     // 导入
-    ifstream ifs("../data.csv",ifstream::in);
+    ifstream ifs("/home/shu_students/czl/online_svr_fpga/data.csv",ifstream::in);
 
     char line[1024];
     ifs.getline(line,1024);
 
+
     int idx = 0;
+    cout << "Enter load(load and mid )load func####################" << endl;
     
     while(!ifs.eof()){
+
         char temp;
         for(int i=0;i<3;++i){
             ifs>>X[idx][i];
@@ -53,6 +56,7 @@ void load_data(double (*X)[NUM_FEATURES],double *Y){
         ++idx;
     }
     ifs.close();
+    cout << "Enter load and mid  load func####################" << endl;
 
     // 数据清洗
     vector<double> means;
@@ -65,6 +69,7 @@ void load_data(double (*X)[NUM_FEATURES],double *Y){
 
         means.push_back(mean);
     }
+    cout << "Enter  mid    load func####################" << endl;
     vector<double> sd_vec;
     for(int i=0;i<NUM_FEATURES;++i){
         double sd = 0;
@@ -88,14 +93,26 @@ void load_data(double (*X)[NUM_FEATURES],double *Y){
     }
 
     
-
+    cout << "Enter222 load func####################" << endl;
 }
 
 
 void train(){
+    
+    cl_int status;
+
+    // 
+
+
+
+
+
+    cout << "Enter train func####################" << endl;
+    
     double X[NUM_ROWS][NUM_FEATURES];
     double Y[NUM_ROWS];
     load_data(X,Y);
+     cout << "Enter train func####2################" << endl;
 
     OnlineSVR online_svr(3,143,0.1,0.1,0.5);
 
@@ -131,29 +148,11 @@ void train(){
     cout << mse/100 << endl;
 }
 
-void matMul(){
-
-    for(int i=0;i<N;++i){
-        for(int j=0;j<N;++j){
-            int result = 0;
-
-            for(int k=0;k<N;++k){
-                result += A[i * N + k] * B[k * N + j];
-            }
-
-            C[i * N + j] = result;
-        }
-    }
-
-}
 
 
-int main(int argc ,char** argv)
-{
-    N = stoi(argv[1]);
-    A = new int[N * N];
-    B = new int[N * N];
-    C = new int[N * N];
+
+void openCLInit(){
+
 
     /*
     for(int i=0;i<N;++i){
@@ -199,58 +198,36 @@ int main(int argc ,char** argv)
     checkError(status,"Failed to create kernel");
 
     // 创建buffer
-    A_buf = clCreateBuffer(context,CL_MEM_READ_ONLY,sizeof(int)*N*N,NULL,&status);
-    B_buf = clCreateBuffer(context,CL_MEM_READ_ONLY,sizeof(int)*N*N,NULL,&status);
-    C_buf = clCreateBuffer(context,CL_MEM_WRITE_ONLY,sizeof(int)*N*N,NULL,&status);
+    A_buf = clCreateBuffer(context,CL_MEM_READ_ONLY,1,NULL,&status);
+    C_buf = clCreateBuffer(context,CL_MEM_READ_ONLY,1,NULL,&status);
+
 
     // 设置kernel参数
-    int nArg = N;
     status = clSetKernelArg(kernel,0,sizeof(cl_mem),&A_buf);
-    status = clSetKernelArg(kernel,1,sizeof(cl_mem),&B_buf);
-    status = clSetKernelArg(kernel,2,sizeof(cl_mem),&C_buf);
-    status = clSetKernelArg(kernel,3,sizeof(int)*N,NULL);
-    status = clSetKernelArg(kernel,4,sizeof(int),&nArg);
+
     checkError(status,"Failed to set arg");
 
 
     clock_t start = clock();
     // 传送数据
-    status = clEnqueueWriteBuffer(command_queue,A_buf,CL_TRUE,0,sizeof(int)*N*N,A,0,NULL,NULL);
-    status = clEnqueueWriteBuffer(command_queue,B_buf,CL_TRUE,0,sizeof(int)*N*N,B,0,NULL,NULL);
-
+    status = clEnqueueWriteBuffer(command_queue,A_buf,CL_TRUE,0,sizeof(int)*1,A,0,NULL,NULL);
 
     // 启动kernel
-    size_t gSize[3] = {N*N,1,1};
-    size_t lSize[3] = {N,1,1};
+    size_t gSize[3] = {5,1,1};
+    size_t lSize[3] = {5,1,1};
     status = clEnqueueNDRangeKernel(command_queue,kernel,1,NULL,gSize,lSize,0,NULL,NULL);
     checkError(status,"Failed to launch kernel");
 
     // 传回数据
-    status = clEnqueueReadBuffer(command_queue,C_buf,CL_TRUE,0,sizeof(int)*N*N,C,0,NULL,NULL);
+    status = clEnqueueReadBuffer(command_queue,C_buf,CL_TRUE,0,sizeof(int)*1,C,0,NULL,NULL);
     
     // 等待队列中的kernel完成
     status = clFinish(command_queue);
     checkError(status,"Failed to finish");
 
-    /*
-    for(int i=0;i<N;++i){
-        for(int j=0;j<N;++j){
-            printf("C[%d][%d]=%d ",i,j,C[i * N + j]);
-        }
-        printf("\n");
-    }
-    */
 
-    clock_t end = clock();
-    printf("FPGA time=%lfms\n",double(end-start));
-
-    start = clock();
-    matMul();
-    end = clock();
-    printf("CPU time=%lfms\n",double(end-start));
 
     
-    // train();
 
 
     // 回收内存
@@ -268,9 +245,15 @@ int main(int argc ,char** argv)
     }
        
     delete A;
-    delete B;
     delete C;
 
+}
+
+int main(int argc ,char** argv)
+{
+
+
+    train();
     return 0;
 }
 

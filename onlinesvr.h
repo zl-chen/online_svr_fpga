@@ -768,6 +768,7 @@ public:
         return results;
     }
 
+    /*
     vector<vector<double>> computeKernelOutput(vector<vector<double>> set1,vector<vector<double>> set2){
         vector<vector<double>> result;
         for(int i=0;i<set1.size();++i){
@@ -787,8 +788,16 @@ public:
 
         return result;
     }
+    */
+
+    
+    // FPGA
+   vector<vector<double>> computeKernelOutput(vector<vector<double>> set1,vector<vector<double>> set2){
+        
 
 
+    }
+    
 
     double rbf(vector<double> v1,vector<double> v2){
         double result =0;
