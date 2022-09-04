@@ -8,23 +8,23 @@
 #include <string>
 #include <fstream>
 #include <ios>
+#include <iostream>
 #include "CL/opencl.h"
 #include "AOCLUtils/aocl_utils.h"
 
-using std::string;
-using std::vector;
-using std::ofstream;
-using std::ios;
+
+using namespace std;
 using namespace aocl_utils;
 
 class OnlineSVR{
 public:
     OnlineSVR(int numFeatures,int C,double eps,double kernelParam,double bias,cl_command_queue command_queue,cl_kernel kernel,
-    cl_mem A_buf,cl_mem B_buf,cl_mem C_buf)
+    cl_context context)
     :numFeatures(numFeatures),C(C),eps(eps),kernelParam(kernelParam),bias(bias),command_queue(command_queue),
-    kernel(kernel),A_buf(A_buf),B_buf(B_buf),C_buf(C_buf){
+    kernel(kernel),context(context){
         this->numSamplesTrained = 0;
     }
+    /*
     void testOpenCL(){
 
         // 状态指示
@@ -63,7 +63,7 @@ public:
 
         printf("/n");
         
-    }
+    }*/
 
     void learn(vector<double> x,double y){
 
@@ -835,10 +835,86 @@ public:
     */
 
     
-    // FPGA
+    // FPGA kernel 计算
    vector<vector<double>> computeKernelOutput(vector<vector<double>> set1,vector<vector<double>> set2){
-        
 
+        // set1 set2 任意一方size为0，直接返回
+        if(set1.size() == 0 || set2.size()==0){
+            vector<vector<double>> tempVec;
+            return tempVec;
+        }
+
+        // 获取矩阵大小
+        int n = set1.size();
+        int m = set2.size();
+        int size = set1[0].size();
+
+
+        // 建立发送和接受的float数组
+        float *set1_arr = (float*)malloc(sizeof(float)*n*size);
+        float *set2_arr = (float*)malloc(sizeof(float)*m*size);
+        float *result_arr = (float*)malloc(sizeof(float)*n*m);
+
+        // 发送数组内容设置
+        for(int i=0;i<n;++i){
+            for(int j=0;j<size;++j){
+                set1_arr[i*size+j] = set1[i][j];
+            }
+        }
+
+        for(int i=0;i<m;++i){
+            for(int j=0;j<size;++j){
+                set2_arr[i*size+j] = set2[i][j];
+            }
+        }
+
+        // 状态指示
+        cl_int status;
+
+        // 创建buffer
+        cl_mem set1_buf = clCreateBuffer(context,CL_MEM_READ_ONLY,sizeof(float)*n*size,NULL,&status);
+        cl_mem set2_buf = clCreateBuffer(context,CL_MEM_READ_ONLY,sizeof(float)*m*size,NULL,&status);
+        cl_mem result_buf = clCreateBuffer(context,CL_MEM_WRITE_ONLY,sizeof(float)*n*m,NULL,&status);
+        checkError(status,"Failed to create buffer");
+
+        // 设备kernel参数
+        status = clSetKernelArg(kernel,0,sizeof(cl_mem),&set1_buf);
+        status = clSetKernelArg(kernel,1,sizeof(cl_mem),&set2_buf);
+        status = clSetKernelArg(kernel,2,sizeof(cl_mem),&result_buf);
+        status = clSetKernelArg(kernel,3,sizeof(int),&n);
+        status = clSetKernelArg(kernel,4,sizeof(int),&m);
+        status = clSetKernelArg(kernel,5,sizeof(int),&size);
+
+        // 主机向设备发送数据
+        status = clEnqueueWriteBuffer(command_queue,set1_buf,CL_TRUE,0,sizeof(float)*n*size,set1_arr,0,NULL,NULL);
+        status = clEnqueueWriteBuffer(command_queue,set2_buf,CL_TRUE,0,sizeof(float)*m*size,set2_arr,0,NULL,NULL);
+        checkError(status,"Failed to write buffer");
+
+        // 启动kernel
+        size_t gSize[3] = {n*m,1,1};
+        size_t lSize[3] = {n*m,1,1};
+        status = clEnqueueNDRangeKernel(command_queue,kernel,1,NULL,gSize,lSize,0,NULL,NULL);
+        checkError(status,"Failed to launch kernel");
+
+        // 设备写回数据
+        status = clEnqueueReadBuffer(command_queue,result_buf,CL_TRUE,0,sizeof(float)*n*m,result_arr,0,NULL,NULL);   
+        checkError(status,"Failed to read buffer");
+
+        // 完成
+        status = clFinish(command_queue);
+        checkError(status,"Failed to finish");
+
+        // result 数组 以矩阵形式返回
+        vector<vector<double>> ans(n,vector<double>(m,0));
+        for(int i=0;i<n;++i){
+            for(int j=0;j<m;++j){
+                ans[i][j] = result_arr[i * m + j];
+                printf("result[%d][%d]=%f ",i,j,ans[i][j]);
+            }
+            printf("\n");
+        }
+
+        return ans;
 
     }
     
@@ -876,12 +952,8 @@ private:
     vector<vector<double>> R;
 
     cl_command_queue command_queue;
-    cl_kernel kernel;
-    cl_mem A_buf;
-    cl_mem B_buf;
-    cl_mem C_buf;
-
-    
+    cl_kernel kernel;   
+    cl_context context; 
 
 };
 

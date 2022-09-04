@@ -121,7 +121,7 @@ void train(){
 
 
     // 创建kernel对象
-    kernel = clCreateKernel(program,"testKernel",&status);
+    kernel = clCreateKernel(program,"rbfKernel",&status);
     checkError(status,"Failed to create kernel");
 
     // 创建buffer
@@ -138,7 +138,7 @@ void train(){
     load_data(X,Y);
      cout << "Enter train func####2################" << endl;
 
-    OnlineSVR online_svr(3,143,0.1,0.1,0.5,command_queue,kernel,A_buf,B_buf,C_buf);
+    OnlineSVR online_svr(3,143,0.1,0.1,0.5,command_queue,kernel,context);
 
     int train_num = 300;
 
@@ -147,9 +147,9 @@ void train(){
     for(int i=0;i<train_num;++i){
    
         vector<double> xVec(begin(X[i]),end(X[i]));
-        //online_svr.learn(xVec,Y[i]);
+        online_svr.learn(xVec,Y[i]);
 
-        online_svr.testOpenCL();
+       
         char temp;
         cin >> temp;
 
