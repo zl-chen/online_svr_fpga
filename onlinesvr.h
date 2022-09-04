@@ -8,17 +8,32 @@
 #include <string>
 #include <fstream>
 #include <ios>
+#include "CL/opencl.h"
+#include "AOCLUtils/aocl_utils.h"
 
 using std::string;
 using std::vector;
 using std::ofstream;
 using std::ios;
+using namespace aocl_utils;
 
 class OnlineSVR{
 public:
-    OnlineSVR(int numFeatures,int C,double eps,double kernelParam,double bias)
-    :numFeatures(numFeatures),C(C),eps(eps),kernelParam(kernelParam),bias(bias){
+    OnlineSVR(int numFeatures,int C,double eps,double kernelParam,double bias,cl_command_queue command_queue,cl_kernel kernel)
+    :numFeatures(numFeatures),C(C),eps(eps),kernelParam(kernelParam),bias(bias),command_queue(command_queue),kernel(kernel){
         this->numSamplesTrained = 0;
+    }
+    void testOpenCL(){
+        size_t gSize[3] = {5,1,1};
+        size_t lSize[3] = {5,1,1};
+        cl_uint status;
+        status = clEnqueueNDRangeKernel(command_queue,kernel,1,NULL,gSize,lSize,0,NULL,NULL);
+        checkError(status,"Failed to launch kernel");
+
+        
+        status = clFinish(command_queue);
+        checkError(status,"Failed to Finish");
+        
     }
 
     void learn(vector<double> x,double y){
@@ -830,6 +845,10 @@ private:
     vector<int> remainderSetIndices;
 
     vector<vector<double>> R;
+
+    cl_command_queue command_queue;
+    cl_kernel kernel;
+    
 
 };
 

@@ -142,21 +142,27 @@ void train(){
     load_data(X,Y);
      cout << "Enter train func####2################" << endl;
 
-    OnlineSVR online_svr(3,143,0.1,0.1,0.5);
+    OnlineSVR online_svr(3,143,0.1,0.1,0.5,command_queue,kernel);
 
     int train_num = 300;
+
     
     for(int i=0;i<train_num;++i){
    
         vector<double> xVec(begin(X[i]),end(X[i]));
-        online_svr.learn(xVec,Y[i]);
+        //online_svr.learn(xVec,Y[i]);
+
+        online_svr.testOpenCL();
 
         
          vector<vector<double>> newX;
+
         vector<double> xVec2(begin(X[i+1]),end(X[i+1]));
+
         newX.push_back(xVec);
 
-        cout << i << "   " << online_svr.predict(newX)[0] << endl ;
+
+        //cout << i << "   " << online_svr.predict(newX)[0] << endl ;
 
     }
 
