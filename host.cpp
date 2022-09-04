@@ -107,17 +107,20 @@ void train(){
     status = clGetDeviceIDs(platform,CL_DEVICE_TYPE_ALL,2,devices,NULL);
     checkError(status,"FAILED to find devices");
 
+    // 使用设备1
+    cl_device_id device = devices[1];
+
     // 建立context
-    context = clCreateContext(NULL,1,devices,NULL,NULL,&status);
+    context = clCreateContext(NULL,1,&device,NULL,NULL,&status);
     checkError(status,"Failed to create context");
 
     // 建立队列
-    command_queue = clCreateCommandQueue(context,devices[0],CL_QUEUE_PROFILING_ENABLE,&status);
+    command_queue = clCreateCommandQueue(context,device,CL_QUEUE_PROFILING_ENABLE,&status);
     checkError(status,"Failed to create commmand queue");
  
 
     // 建立program
-    program = createProgramFromBinary(context,"rbfKernel.aocx",devices,1);
+    program = createProgramFromBinary(context,"rbfKernel.aocx",&device,1);
     status = clBuildProgram(program,0,NULL,NULL,NULL,NULL);
     checkError(status,"Failed to create program");
 
@@ -141,10 +144,10 @@ void train(){
 
     OnlineSVR online_svr(3,143,0.1,0.1,0.5,command_queue,kernel,context);
 
-    int train_num = 300;
+    int train_num = 256;
 
 
-    
+    clock_t start = clock();
     for(int i=0;i<train_num;++i){
         
    
@@ -161,7 +164,11 @@ void train(){
         cout << i << "   " << online_svr.predict(newX)[0] << endl ;
 
     }
+    clock_t end = clock();
 
+    cout << double(end-start)/CLOCKS_PER_SEC << "s" << endl;
+
+    /*
     double mse = 0.0;
     for(int i=train_num;i<train_num+100;++i){
         vector<vector<double>> newX;
@@ -176,6 +183,24 @@ void train(){
 
 
     cout << mse/100 << endl;
+    */
+
+    if(kernel){
+        clReleaseKernel(kernel);
+    }
+
+    if(program){
+        clReleaseProgram(program);
+    }
+
+    if(command_queue){
+        clReleaseCommandQueue(command_queue);
+    }
+    
+    if(context){
+        clReleaseContext(context);
+    }
+
 }
 
 
@@ -281,6 +306,7 @@ void openCLInit(){
 
 int main(int argc ,char** argv)
 {
+    
     train();
     return 0;
 }

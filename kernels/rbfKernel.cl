@@ -21,7 +21,7 @@ __kernel void rbfKernel(__global float* set1,__global float* set2,__global float
     }
     // 平方和 kernelParam乘法
     squareSum *= -kernelParam;
- 
+
     result[idx] = squareSum;
 
 }

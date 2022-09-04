@@ -831,8 +831,8 @@ public:
         return results;
     }
 
-    /*
-    vector<vector<double>> computeKernelOutput(vector<vector<double>> set1,vector<vector<double>> set2){
+    
+    vector<vector<double>> computeKernelOutput2(vector<vector<double>> set1,vector<vector<double>> set2){
         vector<vector<double>> result;
         for(int i=0;i<set1.size();++i){
             vector<double> curV;
@@ -851,17 +851,16 @@ public:
 
         return result;
     }
-    */
+    
 
     
     // FPGA kernel 计算
    vector<vector<double>> computeKernelOutput(vector<vector<double>> set1,vector<vector<double>> set2){
-
-        // set1 set2 任意一方size为0，直接返回
-        if(set1.size() == 0 || set2.size()==0){
-            vector<vector<double>> tempVec;
-            return tempVec;
+        if(set1.size()<500 || set2.size()<500){
+            return computeKernelOutput2(set1,set2);
         }
+
+
 
         // 获取矩阵大小
         int n = set1.size();
@@ -887,14 +886,20 @@ public:
             }
         }
 
+        //cout << "22222222222" << endl; cin >> temp;
+
         // 状态指示
         cl_int status;
+
+
 
         // 创建buffer
         cl_mem set1_buf = clCreateBuffer(context,CL_MEM_READ_ONLY,sizeof(float)*n*size,NULL,&status);
         cl_mem set2_buf = clCreateBuffer(context,CL_MEM_READ_ONLY,sizeof(float)*m*size,NULL,&status);
         cl_mem result_buf = clCreateBuffer(context,CL_MEM_WRITE_ONLY,sizeof(float)*n*m,NULL,&status);
         checkError(status,"Failed to create buffer");
+
+        // cout << "3#################" << endl; cin >> temp;
 
         // 设备kernel参数
         status = clSetKernelArg(kernel,0,sizeof(cl_mem),&set1_buf);
@@ -910,6 +915,8 @@ public:
         status = clEnqueueWriteBuffer(command_queue,set1_buf,CL_TRUE,0,sizeof(float)*n*size,set1_arr,0,NULL,NULL);
         status = clEnqueueWriteBuffer(command_queue,set2_buf,CL_TRUE,0,sizeof(float)*m*size,set2_arr,0,NULL,NULL);
         checkError(status,"Failed to write buffer");
+
+        // cout << "4###############" << endl; cin >> temp;
 
         // 启动kernel
         size_t gSize[3] = {n*m,1,1};
@@ -938,6 +945,9 @@ public:
             }
            // printf("\n");
         }
+
+
+
 
         return ans;
 
