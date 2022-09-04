@@ -65,11 +65,21 @@ public:
         
     }*/
 
+    void print2Vector(vector<vector<double>> & vec){
+        for(int i=0;i<vec.size();++i){
+            for(int j=0;j<vec[0].size();++j){
+                printf("vec[%d][%d]=%f ",i,j,vec[i][j]);
+            }
+            printf("\n");
+        }
+    }
+
     void learn(vector<double> x,double y){
 
         numSamplesTrained += 1;
 
         printf("\n############%d################\n",numSamplesTrained);
+        //char temp;cin >> temp;
 
         X.push_back(x);
         Y.push_back(y);
@@ -87,6 +97,9 @@ public:
 
         while(!newSampleAdded){
             ++iterations;
+            
+            char temp ;
+            //cout << "当前迭代" << iterations << endl;cin >> temp;
 
            if(iterations > numSamplesTrained*100){
                 printf("迭代次数过多\n");
@@ -96,10 +109,16 @@ public:
             vector<vector<double>> beta,gamma;
             computeBetaGamma(numSamplesTrained-1,beta,gamma);
 
+            //cout << "#####beta###" << endl; print2Vector(beta);cin >> temp;
+            //cout << "#######gamma#######" << endl;print2Vector(gamma);cin >> temp;
+
             double deltaC;
             int flag;
             int minIndex;
             findMinVariation(H,beta,gamma,numSamplesTrained-1,deltaC,flag,minIndex);
+
+            //cout << "decltc:" << deltaC << endl;cout << "flag:" << flag << endl;
+            //cout << "minIndex:" << minIndex << endl;cin >> temp;
 
             if(supportSetIndices.size() > 0 && beta.size() > 0){
                 weights[numSamplesTrained-1] += deltaC;
@@ -884,6 +903,8 @@ public:
         status = clSetKernelArg(kernel,3,sizeof(int),&n);
         status = clSetKernelArg(kernel,4,sizeof(int),&m);
         status = clSetKernelArg(kernel,5,sizeof(int),&size);
+        float kernelParamTemp = kernelParam;
+        status = clSetKernelArg(kernel,6,sizeof(float),&kernelParamTemp);
 
         // 主机向设备发送数据
         status = clEnqueueWriteBuffer(command_queue,set1_buf,CL_TRUE,0,sizeof(float)*n*size,set1_arr,0,NULL,NULL);
@@ -900,18 +921,22 @@ public:
         status = clEnqueueReadBuffer(command_queue,result_buf,CL_TRUE,0,sizeof(float)*n*m,result_arr,0,NULL,NULL);   
         checkError(status,"Failed to read buffer");
 
+        // 由于kernel内部不能调用exp函数，此时返回的实际上市没有取e的情况
+
+
         // 完成
         status = clFinish(command_queue);
         checkError(status,"Failed to finish");
+
 
         // result 数组 以矩阵形式返回
         vector<vector<double>> ans(n,vector<double>(m,0));
         for(int i=0;i<n;++i){
             for(int j=0;j<m;++j){
-                ans[i][j] = result_arr[i * m + j];
-                printf("result[%d][%d]=%f ",i,j,ans[i][j]);
+                ans[i][j] = exp(result_arr[i * m + j]);
+                //printf("result[%d][%d]=%f ",i,j,ans[i][j]);
             }
-            printf("\n");
+           // printf("\n");
         }
 
         return ans;

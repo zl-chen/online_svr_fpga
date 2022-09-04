@@ -1,4 +1,5 @@
-__kernel void rbfKernel(__global float* set1,__global float* set2,__global float* result ,int n,int m,int size){
+
+__kernel void rbfKernel(__global float* set1,__global float* set2,__global float* result ,int n,int m,int size,float kernelParam){
     // set1 n行 
     // set2 m行
     // 每行 size个元素
@@ -11,11 +12,17 @@ __kernel void rbfKernel(__global float* set1,__global float* set2,__global float
 
 
     // 执行rbf计算
-    for(int i=0;i<size;++i){
-        ans += set1[row*size+i] * set2[col*size+i];
-    }
 
-    result[idx] = ans;
+    // 平方和
+    float squareSum = 0.0;
+    for(int i=0;i<size;++i){
+       squareSum += (set1[row * size + i] - set2[col * size + i]) * (set1[row * size + i] - set2[col * size + i]);
+        
+    }
+    // 平方和 kernelParam乘法
+    squareSum *= -kernelParam;
+ 
+    result[idx] = squareSum;
 
 }
 

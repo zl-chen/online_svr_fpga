@@ -92,9 +92,11 @@ void load_data(double (*X)[NUM_FEATURES],double *Y){
 
 
 void train(){
+
+    char temp;
+   // cout << "Enter train" << endl;cin >> temp;
     setCwdToExeDir();
     
-
     cl_int status;
 
     // 建立平台
@@ -136,7 +138,6 @@ void train(){
     double X[NUM_ROWS][NUM_FEATURES];
     double Y[NUM_ROWS];
     load_data(X,Y);
-     cout << "Enter train func####2################" << endl;
 
     OnlineSVR online_svr(3,143,0.1,0.1,0.5,command_queue,kernel,context);
 
@@ -145,14 +146,10 @@ void train(){
 
     
     for(int i=0;i<train_num;++i){
+        
    
         vector<double> xVec(begin(X[i]),end(X[i]));
         online_svr.learn(xVec,Y[i]);
-
-       
-        char temp;
-        cin >> temp;
-
         
          vector<vector<double>> newX;
 
@@ -161,7 +158,7 @@ void train(){
         newX.push_back(xVec);
 
 
-        //cout << i << "   " << online_svr.predict(newX)[0] << endl ;
+        cout << i << "   " << online_svr.predict(newX)[0] << endl ;
 
     }
 
@@ -284,8 +281,6 @@ void openCLInit(){
 
 int main(int argc ,char** argv)
 {
-
-
     train();
     return 0;
 }
