@@ -94,32 +94,22 @@ void load_data(double (*X)[NUM_FEATURES],double *Y){
 void train(){
     setCwdToExeDir();
     
-    cout << "test" << endl;
 
     cl_int status;
 
+    // 建立平台
     status = clGetPlatformIDs(1,&platform,NULL);
     checkError(status,"Faile to find platform");
 
-    char line[1024];
-    clGetPlatformInfo(platform,CL_PLATFORM_NAME,1024,line,NULL);
-
-    cout << "Name: " << line << endl;
-
-
-    cl_uint num;
-    status = clGetDeviceIDs(platform,CL_DEVICE_TYPE_ALL,2,devices,&num);
-    cout << num << " devices" << endl;
+    // 建立设备
+    status = clGetDeviceIDs(platform,CL_DEVICE_TYPE_ALL,2,devices,NULL);
     checkError(status,"FAILED to find devices");
 
-
-
+    // 建立context
     context = clCreateContext(NULL,1,devices,NULL,NULL,&status);
     checkError(status,"Failed to create context");
 
-
-
-    // 建队列
+    // 建立队列
     command_queue = clCreateCommandQueue(context,devices[0],CL_QUEUE_PROFILING_ENABLE,&status);
     checkError(status,"Failed to create commmand queue");
  
@@ -133,6 +123,12 @@ void train(){
     // 创建kernel对象
     kernel = clCreateKernel(program,"testKernel",&status);
     checkError(status,"Failed to create kernel");
+
+    // 创建buffer
+    cl_mem A_buf = clCreateBuffer(context,CL_MEM_READ_ONLY,5*sizeof(float),NULL,&status);
+    cl_mem B_buf = clCreateBuffer(context,CL_MEM_READ_ONLY,5*sizeof(float),NULL,&status);
+    cl_mem C_buf = clCreateBuffer(context,CL_MEM_WRITE_ONLY,5*sizeof(float),NULL,&status);
+    
     
 
 
@@ -142,9 +138,10 @@ void train(){
     load_data(X,Y);
      cout << "Enter train func####2################" << endl;
 
-    OnlineSVR online_svr(3,143,0.1,0.1,0.5,command_queue,kernel);
+    OnlineSVR online_svr(3,143,0.1,0.1,0.5,command_queue,kernel,A_buf,B_buf,C_buf);
 
     int train_num = 300;
+
 
     
     for(int i=0;i<train_num;++i){
@@ -153,6 +150,8 @@ void train(){
         //online_svr.learn(xVec,Y[i]);
 
         online_svr.testOpenCL();
+        char temp;
+        cin >> temp;
 
         
          vector<vector<double>> newX;

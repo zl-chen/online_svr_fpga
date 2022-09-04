@@ -3,7 +3,8 @@ __kernel void rbfKernel(__global float* set1,__global float* set2,__global float
 
 }
 
-__kernel void testKernel(){
+__kernel void testKernel(__global float* A,__global float* B,__global float* C){
 
-    printf("test Message\n");
+    int idx = get_global_id(0);
+    C[idx] = B[idx] + A[idx];
 }

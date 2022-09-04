@@ -19,20 +19,49 @@ using namespace aocl_utils;
 
 class OnlineSVR{
 public:
-    OnlineSVR(int numFeatures,int C,double eps,double kernelParam,double bias,cl_command_queue command_queue,cl_kernel kernel)
-    :numFeatures(numFeatures),C(C),eps(eps),kernelParam(kernelParam),bias(bias),command_queue(command_queue),kernel(kernel){
+    OnlineSVR(int numFeatures,int C,double eps,double kernelParam,double bias,cl_command_queue command_queue,cl_kernel kernel,
+    cl_mem A_buf,cl_mem B_buf,cl_mem C_buf)
+    :numFeatures(numFeatures),C(C),eps(eps),kernelParam(kernelParam),bias(bias),command_queue(command_queue),
+    kernel(kernel),A_buf(A_buf),B_buf(B_buf),C_buf(C_buf){
         this->numSamplesTrained = 0;
     }
     void testOpenCL(){
+
+        // 状态指示
+        cl_uint status;
+
+
+        // 设置kernel参数
+        status = clSetKernelArg(kernel,0,sizeof(cl_mem),&A_buf);
+        status = clSetKernelArg(kernel,1,sizeof(cl_mem),&B_buf);
+        status = clSetKernelArg(kernel,2,sizeof(cl_mem),&C_buf);
+
+        // 主机发送数据
+        float A[5] = {1,2,3,4,5};
+        float B[5] = {60,2,3,4,5};
+        clEnqueueWriteBuffer(command_queue,A_buf,CL_TRUE,0,sizeof(float)*5,A,0,NULL,NULL);
+        clEnqueueWriteBuffer(command_queue,B_buf,CL_TRUE,0,sizeof(float)*5,B,0,NULL,NULL);
+
+        // 启动kernel
         size_t gSize[3] = {5,1,1};
         size_t lSize[3] = {5,1,1};
-        cl_uint status;
         status = clEnqueueNDRangeKernel(command_queue,kernel,1,NULL,gSize,lSize,0,NULL,NULL);
         checkError(status,"Failed to launch kernel");
 
+        // 设备传回数据
+        float C[5];
+        clEnqueueReadBuffer(command_queue,C_buf,CL_TRUE,0,sizeof(float)*5,C,0,NULL,NULL);
         
+        // 完成
         status = clFinish(command_queue);
         checkError(status,"Failed to Finish");
+
+        // 打印C数据数据
+        for(int i=0;i<5;++i){
+            printf("C[%d]=%f ",i,C[i]);
+        }
+
+        printf("/n");
         
     }
 
@@ -848,6 +877,10 @@ private:
 
     cl_command_queue command_queue;
     cl_kernel kernel;
+    cl_mem A_buf;
+    cl_mem B_buf;
+    cl_mem C_buf;
+
     
 
 };
