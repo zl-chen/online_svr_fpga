@@ -10,8 +10,8 @@
 #include "AOCLUtils/aocl_utils.h"
 
 
-#define NUM_ROWS 1222
-#define NUM_FEATURES 3
+#define NUM_ROWS 500
+#define NUM_FEATURES 13
 
 int * A,*C;
 
@@ -33,31 +33,45 @@ cl_mem C_buf;
 void cleanup();
 
 void load_data(double (*X)[NUM_FEATURES],double *Y){
+    char temp;
+
 
     // 导入
-    ifstream ifs("/home/shu_students/czl/online_svr_fpga/data.csv",ifstream::in);
+    ifstream ifs("/home/shu_students/czl/online_svr_fpga/data/housing.csv",ifstream::in);
 
+
+
+
+    // 用line保存从数据中中读取的每一行
     char line[1024];
     ifs.getline(line,1024);
 
+    cout << line << endl;
+    //cin >> temp;
 
     int idx = 0;
     
+    // 循环读取每一行，将内容保存在X和Y数组中
     while(!ifs.eof()){
 
         char temp;
-        for(int i=0;i<3;++i){
+        for(int i=0;i<NUM_FEATURES;++i){
             ifs>>X[idx][i];
+            printf("X[%d][%d]=%f\t",idx,i,X[idx][i]);
             ifs>>temp;
         }
         ifs>>Y[idx];
+        printf("Y[%d]=%f\n",idx,Y[idx]);
         ++idx;
     }
     ifs.close();
 
-    // 数据清洗
+    // 对X做数据清洗，将X数组归一化
+    // 归一化：计算列特征的均值和标准差，然后用每个数值减去均值除以标准差。归一化的目的是将特征数据变成均值为0，标准差为1的分布。
     vector<double> means;
-    for(int i=0;i<NUM_FEATURES;++i){
+    for(int i=0;i<NUM_FEATURES;++i)
+    {
+        // 计算
         double mean = 0;
         for(int j=0;j<NUM_ROWS;++j){
             mean += X[j][i];
@@ -66,6 +80,8 @@ void load_data(double (*X)[NUM_FEATURES],double *Y){
 
         means.push_back(mean);
     }
+
+    // 计算标准差
     vector<double> sd_vec;
     for(int i=0;i<NUM_FEATURES;++i){
         double sd = 0;
@@ -79,6 +95,8 @@ void load_data(double (*X)[NUM_FEATURES],double *Y){
         sd_vec.push_back(sd);
     }
 
+
+    // 进行归一化
     for(int i=0;i<NUM_FEATURES;++i){
         double mean = means[i];
         double sd = sd_vec[i];
@@ -108,7 +126,7 @@ void train(){
     checkError(status,"FAILED to find devices");
 
     // 使用设备1
-    cl_device_id device = devices[1];
+    cl_device_id device = devices[0];
 
     // 建立context
     context = clCreateContext(NULL,1,&device,NULL,NULL,&status);
@@ -142,9 +160,21 @@ void train(){
     double Y[NUM_ROWS];
     load_data(X,Y);
 
-    OnlineSVR online_svr(3,143,0.1,0.1,0.5,command_queue,kernel,context);
+    printf("dsafasdfasdfasdfasdfs\n");
+    //cin >> temp;
 
-    int train_num = 256;
+
+    for(int i=0;i<NUM_FEATURES;++i){
+        printf("X[%d]=%lf\t",i,X[0][i]);
+    }
+    printf("Y=%f\n",Y[0]);
+   
+
+    //cin >> temp;
+
+    OnlineSVR online_svr(13,100,0.1,0.1,0.5,command_queue,kernel,context);
+
+    int train_num = 400;
 
 
     clock_t start = clock();
@@ -161,16 +191,18 @@ void train(){
         newX.push_back(xVec);
 
 
-        cout << i << "   " << online_svr.predict(newX)[0] << endl ;
+        cout << i << "   " << online_svr.predict(newX)[0]  << "\t" << Y[i+1]<< endl ;
 
     }
-    clock_t end = clock();
+    clock_t endTime = clock();
 
-    cout << double(end-start)/CLOCKS_PER_SEC << "s" << endl;
+    cout << double(endTime-start)/CLOCKS_PER_SEC << "s" << endl;
 
-    /*
+    
+    // 计算后续100个值的mse
+    int mse_num = 100;
     double mse = 0.0;
-    for(int i=train_num;i<train_num+100;++i){
+    for(int i=train_num;i<train_num+mse_num;++i){
         vector<vector<double>> newX;
         vector<double> xVec(begin(X[i]),end(X[i]));
         newX.push_back(xVec);
@@ -181,9 +213,9 @@ void train(){
 
     }
 
-
-    cout << mse/100 << endl;
-    */
+    // 
+    cout << mse/mse_num << endl;
+    
 
     if(kernel){
         clReleaseKernel(kernel);

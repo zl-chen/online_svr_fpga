@@ -71,9 +71,9 @@ CXXFLAGS += -fPIC -std=c++14 -g
 # Compiler
 CXX := g++
 
-# Target
+# 输出路径
 TARGET := host
-TARGET_DIR := bin
+TARGET_DIR := aocx/rbf
 
 # Directories
 INC_DIRS := $(INTELFPGAOCLSDKROOT)/examples_aoc/common/inc .
